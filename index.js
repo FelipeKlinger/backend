@@ -1,5 +1,8 @@
-const express = require("express");
+const express = require('express')
 const app = express();
+
+
+app.use(express.json()); // middleware to parse JSON bodies
 
 let notes = [
   {
@@ -44,14 +47,35 @@ app.delete("/api/notes/:id", (request, response) => { // APIREST significa que c
   response.status(204).end();
 });
 
-app.post("/api/notes", (resquest, response) => { // endpoint para crear nuevas notas
-  const note = resquest.body; // el body del request contiene la nueva nota
-  console.log(note);
-  response.json(note);
-});
+const generateId = () => {
+  const maxId = notes.length > 0
+    ? Math.max(...notes.map(n => n.id))
+    : 0
+  return maxId + 1
+}
+
+app.post('/api/notes', (request, response) => {
+  const body = request.body
+
+  if (!body.content) { // !body.content is undefined, ojecto truhty falase
+    return response.status(400).json({ 
+      error: 'content missing' 
+    })
+  }
+
+  const note = {
+    content: body.content,
+    important: Boolean(body.important) || false,
+    id: generateId(),
+  }
+
+  notes = notes.concat(note)
+
+  response.json(note)
+})
 
 
-const PORT = 7000;
+const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
