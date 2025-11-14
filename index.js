@@ -1,9 +1,9 @@
-const express = require('express')
+const express = require("express");
 const app = express();
-const cors = require('cors');
-
+const cors = require("cors");
+const morgan = require("morgan");
+const Note = require("./models/note"); // importa el modelo Note desde models/note.js
 app.use(cors()); // middleware to enable CORS
-
 app.use(express.json()); // middleware to parse JSON bodies
 
 let notes = [
@@ -24,60 +24,121 @@ let notes = [
   },
 ];
 
+app.use(
+  morgan(function (tokens, req, res) {
+    // este tipo de funcion se llama en JS un callback
+
+    morgan.token("body", (req) => JSON.stringify(req.body)); // token personalizado para mostrar el body de la peticion
+
+    return [
+      tokens.method(req, res), // Método HTTP
+      tokens.url(req, res), // URL solicitada
+      tokens.status(req, res), // Código de estado
+      tokens.res(req, res, "content-length"),
+      "-", // Tamaño de la respuesta
+      tokens["response-time"](req, res),
+      "ms",
+      tokens.body(req, res), // Cuerpo de la petición
+    ].join(" ");
+  })
+);
+
 app.get("/", (request, response) => {
   response.send("<h1>Hello World!</h1>");
 });
 
 app.get("/api/notes", (request, response) => {
-  response.json(notes);
+  Note.find({}).then((notes) => {
+    response.send(notes);
+  });
 });
 
-app.get("/api/notes/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const note = notes.find((note) => note.id === id);
-
-  if (note) { //  note is not undefined 
-    response.json(note);
-  } else {
-    response.status(404).end(); // status() sets the status code, end() ends the response
-  }
+app.get("/api/notes/:id", (request, response, next) => {
+  Note.findById(request.params.id)
+    .then((note) => {
+      if (note) {
+        response.json(note);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      next(error);
+    });
 });
 
-app.delete("/api/notes/:id", (request, response) => { // APIREST significa que cada recurso tiene su propia URL
-  const id = Number(request.params.id);
-  notes = notes.filter((note) => note.id !== id); // note.id diferente del id del request, filtra  y guarda los elementos que no coinciden
-  response.status(204).end();
+app.delete("/api/notes/:id", (request, response) => {
+  Note.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => {
+      next(error); // pasa el error al siguiente middleware de manejo de errores
+    });
 });
 
 const generateId = () => {
-  const maxId = notes.length > 0
-    ? Math.max(...notes.map(n => n.id))
-    : 0
-  return maxId + 1
-}
+  const maxId = notes.length > 0 ? Math.max(...notes.map((n) => n.id)) : 0;
+  return maxId + 1;
+};
 
-app.post('/api/notes', (request, response) => {
-  const body = request.body
+app.post("/api/notes", (request, response) => {
+  const body = request.body; // el request body es el contenido enviado por el cliente en una petición HTTP POST
 
-  if (!body.content) { // !body.content is undefined, ojecto truhty falase
-    return response.status(400).json({ 
-      error: 'content missing' 
-    })
+  if (body.content === undefined) {
+    // si en el body no hay content undefined
+    return response.status(400).json({ error: "content missing" });
   }
+
+  const note = new Note({
+    content: body.content, // crea una nueva nota con el contenido del body
+    important: body.important || false, // si no viene important en el body, lo pone en false
+  });
+
+  note.save().then((savedNote) => {
+    // guarda la nota en la base de datos
+    response.json(savedNote); // response es el objeto que representa la respuesta HTTP que se enviará al cliente, rep
+  });
+});
+
+app.put("/api/notes/:id", (request, response, next) => {
+  const body = request.body;
 
   const note = {
     content: body.content,
-    important: Boolean(body.important) || false,
-    id: generateId(),
+    important: body.important,
+  };
+
+  Note.findByIdAndUpdate(request.params.id, note, { new: true })
+    .then((updateNote) => {
+      response.json(updateNote);
+    })
+    .catch((error) => {
+      next(error);
+    });
+});
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: "unknown endpoint" });
+};
+
+app.use(unknownEndpoint); // middleware para manejar endpoints desconocidos
+
+const errorHandler = (error, request, response, next) => {
+  // middleware para manejar errores
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    // si el error se llmama CastError, retorna el error 404
+    return response.status(400).send({ error: "malformatted id" });
   }
+  next(error);
+};
 
-  notes = notes.concat(note)
+app.use(errorHandler); // middleware para manejar errores
 
-  response.json(note)
-})
-
-
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001; // obtiene el puerto desde las variables de entorno o usa 3001 por defecto
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

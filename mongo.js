@@ -22,8 +22,8 @@ const noteSchema = new mongoose.Schema({
 const Note = mongoose.model("Note", noteSchema); // crea el modelo Note basado en el esquema noteSchema
 
 const note = new Note({
-  content: "Causa mucho gusto aprender Mongoose",
-  important: true,
+  content: "Nueva nota de prueba",
+  important: false,
 });
 
 note.save().then( result => {
@@ -31,9 +31,3 @@ note.save().then( result => {
   console.log(result)
 })
   
-Note.find({}).then((result) => {
-  result.forEach((note) => {
-    console.log(note);
-  });
-  mongoose.connection.close();
-});
