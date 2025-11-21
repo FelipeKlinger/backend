@@ -6,24 +6,6 @@ const Note = require("./models/note"); // importa el modelo Note desde models/no
 app.use(cors()); // middleware to enable CORS
 app.use(express.json()); // middleware to parse JSON bodies
 
-let notes = [
-  {
-    id: 1,
-    content: "HTML is easy",
-    important: true,
-  },
-  {
-    id: 2,
-    content: "Browser can execute only JavaScript",
-    important: false,
-  },
-  {
-    id: 3,
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true,
-  },
-];
-
 app.use(
   morgan(function (tokens, req, res) {
     // este tipo de funcion se llama en JS un callback
@@ -83,13 +65,9 @@ const generateId = () => {
   return maxId + 1;
 };
 
-app.post("/api/notes", (request, response) => {
+app.post("/api/notes", (request, response, next) => {
+  //request reperesenta la petición HTTP que se recibe en el servidor y el response representa la respuesta HTTP que se enviará al cliente
   const body = request.body; // el request body es el contenido enviado por el cliente en una petición HTTP POST
-
-  if (body.content === undefined) {
-    // si en el body no hay content undefined
-    return response.status(400).json({ error: "content missing" });
-  }
 
   const note = new Note({
     content: body.content, // crea una nueva nota con el contenido del body
@@ -99,7 +77,7 @@ app.post("/api/notes", (request, response) => {
   note.save().then((savedNote) => {
     // guarda la nota en la base de datos
     response.json(savedNote); // response es el objeto que representa la respuesta HTTP que se enviará al cliente, rep
-  });
+  }) .catch(error => next(error));
 });
 
 app.put("/api/notes/:id", (request, response, next) => {
@@ -129,11 +107,12 @@ const errorHandler = (error, request, response, next) => {
   // middleware para manejar errores
   console.error(error.message);
 
-  if (error.name === "CastError") {
-    // si el error se llmama CastError, retorna el error 404
+  if (error.name === "CastError") { // si el error se llmama CastError, retorna el error 404
     return response.status(400).send({ error: "malformatted id" });
+  } else if (error.name === "ValidationError") {
+    return response.status(400).json({ error: error.message });
   }
-  next(error);
+  next(error); // si no es un CastError, pasa el error al siguiente middleware
 };
 
 app.use(errorHandler); // middleware para manejar errores
