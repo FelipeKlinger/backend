@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+const app = require('./app')
 const cors = require("cors");
 const morgan = require("morgan");
 app.use(express.static("dist")); // middleware para servir archivos estaticos desde la carpeta build

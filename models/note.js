@@ -33,4 +33,5 @@ noteSchema.set("toJSON", {
     delete returnedObject.__v;
   },
 });
+
 module.exports = mongoose.model("Note", noteSchema); // exporta el modelo Note basado en el esquema noteSchema
