@@ -1,9 +1,11 @@
-// utils/config.js este archivo gestiona la configuración de la aplicación con las variables de entorno
-
-require("dotenv").config(); // carga las variables de entorno desde el archivo .env
-
+require("dotenv").config();
 const PORT = process.env.PORT || 3001;
-const MONGODB_URI = process.env.MONGODB_URI;
+//const MONGODB_URI = process.env.MONGODB_URI;
+
+const MONGODB_URI =
+  process.env.NODE_ENV === "test" // Si el entorno es de prueba, retorna la URI de prueba
+    ? process.env.TEST_MONGODB_URI
+    : process.env.MONGODB_URI;
 
 module.exports = {
   MONGODB_URI,
