@@ -1,21 +1,25 @@
 // models/note.js define el esquema y el modelo de Mongoose para las notas
-const mongoose = require('mongoose')
+const mongoose = require("mongoose");
 
 const noteSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true,
-    minlength: 5
+    minlength: 5,
   },
   important: Boolean,
-})
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+});
 
-noteSchema.set('toJSON', {
+noteSchema.set("toJSON", {
   transform: (document, returnedObject) => {
-    returnedObject.id = returnedObject._id.toString()
-    delete returnedObject._id
-    delete returnedObject.__v
-  }
-})
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+  },
+});
 
-module.exports = mongoose.model('Note', noteSchema) // Exporta el modelo de Nota para que pueda ser utilizado en otras partes de la aplicación
+module.exports = mongoose.model("Note", noteSchema); // Exporta el modelo de Nota para que pueda ser utilizado en otras partes de la aplicación

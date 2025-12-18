@@ -6,7 +6,10 @@ const User = require("../models/users");
 // GET /api/notes
 notesRouter.get("/", async (request, response) => {
   // Async/Await para manejar operaciones asíncronas que requieren promesas
-  const notes = await Note.find({}); // Busca todas las notas en la base de datos
+  const notes = await Note.find({}).populate("userId", {
+    username: 1,
+    name: 1,
+  }); // Busca todas las notas en la base de datos
   response.json(notes);
 });
 
@@ -22,16 +25,17 @@ notesRouter.get("/:id", async (request, response) => {
 
 // POST /api/notes
 notesRouter.post("/", async (request, response) => {
-  const body = request.body;
-  const user = await User.findById(body.userId);
+  //request: datos entrantes, response: respuesta al cliente
+  const body = request.body; // Extrae el cuerpo de la solicitud
+  const user = await User.findById(body.userId); // Busca el usuario por ID
 
   const note = new Note({
     content: body.content,
     important: body.important || false,
-    user: user.id,
+    userId: user.id,
   });
 
-  const savedNote = await note.save();
+  const savedNote = await note.save(); // Guarda la nueva nota en la base de datos
   user.notes = user.notes.concat(savedNote._id);
   await user.save();
 
